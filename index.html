@@ -117,7 +117,76 @@
         .cta-button:hover {
             transform: translateY(-2px);
         }
+        /*************************************************************
+        *    SECCIÓN ESPECIAL: San Luis Marketplaces (estilos mejorados)
+        *************************************************************/
+        .marketplaces-section {
+            max-width: 1200px;
+            margin: 3rem auto;
+            padding: 3rem 2rem;
+            border-radius: 1rem;
+            background: linear-gradient(120deg, #FFEFBA 0%, #FFFFFF 100%);
+            box-shadow: var(--shadow-lg);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
 
+        /* Elementos decorativos con pseudo-elementos */
+        .marketplaces-section::before,
+        .marketplaces-section::after {
+            content: "";
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background-color: rgba(37, 99, 235, 0.1);
+            z-index: 0;
+            filter: blur(30px);
+        }
+
+        .marketplaces-section::before {
+            top: -50px;
+            left: -50px;
+        }
+        .marketplaces-section::after {
+            bottom: -50px;
+            right: -50px;
+        }
+
+        .marketplaces-section h2 {
+            color: var(--primary);
+            margin-bottom: 1rem;
+            font-size: 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .marketplaces-section p {
+            color: var(--secondary);
+            margin-bottom: 2rem;
+            font-size: 1.2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .special-button {
+            background-color: var(--accent);
+            color: var(--white);
+            padding: 0.85rem 1.75rem;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            font-weight: 600;
+            transition: transform 0.3s ease, background-color 0.3s ease;
+            display: inline-block;
+            position: relative;
+            z-index: 1;
+        }
+
+        .special-button:hover {
+            transform: translateY(-3px);
+            background-color: #f08a00; /* Un poco más oscuro que --accent */
+        }
         /* Grid de Publicaciones */
         .publications-grid {
             max-width: 1200px;
@@ -453,6 +522,19 @@
             <p>La manera más fácil de conectar compradores y vendedores en nuestra comunidad</p>
             <a href="#contact" class="cta-button">Publicar Ahora</a>
         </div>
+    </section>
+    <!-- Sección Especial: San Luis Marketplaces -->
+    <section id="san-luis-marketplaces" class="marketplaces-section">
+        <h2>Conoce todos los Marketplaces de San Luis</h2>
+        <p>Navega por los diferentes Marketplaces de la provincia en un solo lugar.</p>
+        <a
+            href="https://sanluismarket.github.io/San-Luis-Marketplaces/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="special-button"
+        >
+            Visitar San Luis Marketplaces
+        </a>
     </section>
     <!-- Sección de Comercios -->
     <section id="comercios" class="commerce-section">
