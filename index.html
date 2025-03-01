@@ -23,13 +23,12 @@
             --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
         }
 
-        * {
+        /* Agregado para evitar scroll horizontal */
+        html, body {
+            overflow-x: hidden;
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-        }
-
-        body {
             font-family: 'Inter', sans-serif;
             background-color: var(--background);
             color: var(--text);
@@ -400,6 +399,13 @@
 
             .modal-content {
                 margin: 1rem;
+            }
+
+            /* Ajuste chat en pantallas pequeñas */
+            .chat-window {
+                width: 90% !important;
+                right: 5%;
+                left: auto;
             }
         }
 
