@@ -850,7 +850,7 @@
             });
         }
 
-        // Función de filtrado (con manejo de casos)
+        // Función de filtrado
         function filterPublications(query, category) {
             const queryTrimmed = query.trim().toLowerCase();
             return publications.filter(pub => {
@@ -897,17 +897,14 @@
             const searchInput = searchForm.querySelector('[name="query"]');
             const categorySelect = searchForm.querySelector('[name="category"]');
 
-            // Cargar todas las publicaciones al inicio
             renderPublications(publications);
 
-            // Evento de búsqueda
             searchForm.addEventListener('submit', (e) => {
                 e.preventDefault();
                 const filtered = filterPublications(searchInput.value, categorySelect.value);
                 renderPublications(filtered);
             });
 
-            // Evento para resetear filtros (si el usuario selecciona 'all')
             categorySelect.addEventListener('change', () => {
                 if (categorySelect.value === 'all') {
                     searchInput.value = '';
@@ -998,20 +995,16 @@
             }
         };
 
-        // Variables de estado
         let awaitingEmail = false;
         let currentOption = null;
         let selectedSubOption = null;
 
-        // Validación de email
         function isValidEmail(email) {
             return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
         }
 
-        // Envío de email usando Formspree
         async function sendFormspreeEmail(email, option, subOption = null) {
             let subject, message;
-
             if (subOption) {
                 const categories = {
                     '3a': 'Vehículos',
@@ -1063,20 +1056,18 @@
             }
         }
 
-        // Manejador de respuestas del chat
         async function handleChatResponse(userText) {
             const text = userText.trim().toLowerCase();
 
-            // Si estamos esperando un email
             if (awaitingEmail) {
                 if (isValidEmail(text)) {
                     const emailSent = await sendFormspreeEmail(text, currentOption, selectedSubOption);
                     awaitingEmail = false;
                     
                     if (emailSent) {
-                        const response = selectedSubOption ? 
-                            chatResponses.option3.emailSent.replace('{email}', text) :
-                            chatResponses[`option${currentOption}`].emailSent.replace('{email}', text);
+                        const response = selectedSubOption 
+                            ? chatResponses.option3.emailSent.replace('{email}', text) 
+                            : chatResponses[`option${currentOption}`].emailSent.replace('{email}', text);
                         
                         currentOption = null;
                         selectedSubOption = null;
@@ -1089,7 +1080,6 @@
                 }
             }
 
-            // Menú principal
             if (!text || text === 'menu') {
                 awaitingEmail = false;
                 currentOption = null;
@@ -1104,13 +1094,12 @@
                 return chatResponses[`option${text}`].main;
             }
 
-            // Opción 3 y sus submenús
+            // Opción 3 (submenús)
             if (text === '3') {
                 currentOption = '3';
                 return chatResponses.option3.main;
             }
 
-            // Submenús de la opción 3
             if (['3a', '3b', '3c', '3d'].includes(text)) {
                 selectedSubOption = text;
                 awaitingEmail = true;
@@ -1120,7 +1109,6 @@
             return "No entiendo esa opción. Escribe un número del 1 al 4 para ver las opciones disponibles, o 'menu' para ver el menú principal.";
         }
 
-        // Inicialización y manejo de UI
         document.addEventListener('DOMContentLoaded', () => {
             const openChatBtn = document.getElementById('openChatBtn');
             const closeChatBtn = document.getElementById('closeChatBtn');
@@ -1166,7 +1154,7 @@
         // ------------------------------------------------
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker
-                .register('/service-worker.js') // Ajustar ruta si no está en la raíz
+                .register('/service-worker.js') // Ajustar la ruta si no está en la raíz
                 .then((reg) => {
                     console.log('Service Worker registrado con éxito:', reg.scope);
                 })
@@ -1177,10 +1165,11 @@
 
         let deferredPrompt; // Guardará el evento de instalación
         window.addEventListener('beforeinstallprompt', (e) => {
+            // Detiene la aparición automática del prompt
             e.preventDefault();
-            // Guardar el evento para utilizarlo al hacer clic en un botón
             deferredPrompt = e;
-
+            
+            // Crear y mostrar el botón para la instalación
             const installBtn = document.createElement('button');
             installBtn.textContent = 'Agregar a Pantalla de Inicio';
             installBtn.style.position = 'fixed';
@@ -1193,9 +1182,13 @@
             installBtn.style.fontSize = '1rem';
             installBtn.style.color = '#fff';
             installBtn.style.backgroundColor = '#2563eb';
+            installBtn.style.cursor = 'pointer';
+            installBtn.style.zIndex = 9999;
+
             document.body.appendChild(installBtn);
 
             installBtn.addEventListener('click', () => {
+                // Mostrar el prompt de instalación
                 deferredPrompt.prompt();
                 deferredPrompt.userChoice.then((choiceResult) => {
                     if (choiceResult.outcome === 'accepted') {
@@ -1212,3 +1205,4 @@
 </body>
 </html>
 </qodoArtifact>
+
