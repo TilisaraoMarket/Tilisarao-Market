@@ -1160,6 +1160,54 @@
                 chatMessages.scrollTop = chatMessages.scrollHeight;
             }
         });
+        
+        // ------------------------------------------------
+        // Registro del Service Worker y beforeinstallprompt
+        // ------------------------------------------------
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker
+                .register('/service-worker.js') // Ajustar ruta si no está en la raíz
+                .then((reg) => {
+                    console.log('Service Worker registrado con éxito:', reg.scope);
+                })
+                .catch((err) => {
+                    console.error('Fallo al registrar Service Worker:', err);
+                });
+        }
+
+        let deferredPrompt; // Guardará el evento de instalación
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            // Guardar el evento para utilizarlo al hacer clic en un botón
+            deferredPrompt = e;
+
+            const installBtn = document.createElement('button');
+            installBtn.textContent = 'Agregar a Pantalla de Inicio';
+            installBtn.style.position = 'fixed';
+            installBtn.style.bottom = '1rem';
+            installBtn.style.left = '50%';
+            installBtn.style.transform = 'translateX(-50%)';
+            installBtn.style.padding = '0.75rem 1rem';
+            installBtn.style.border = 'none';
+            installBtn.style.borderRadius = '0.5rem';
+            installBtn.style.fontSize = '1rem';
+            installBtn.style.color = '#fff';
+            installBtn.style.backgroundColor = '#2563eb';
+            document.body.appendChild(installBtn);
+
+            installBtn.addEventListener('click', () => {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('El usuario aceptó instalar la PWA.');
+                    } else {
+                        console.log('El usuario rechazó la instalación.');
+                    }
+                    deferredPrompt = null;
+                    installBtn.remove();
+                });
+            });
+        });
     </script>
 </body>
 </html>
