@@ -743,50 +743,69 @@
         }
 
         /* Responsive adjustments */
+        /* Modificación de los estilos del banner para dispositivos móviles */
         @media (max-width: 768px) {
             .m84-banner-section {
                 margin: 2rem auto;
             }
 
             .banner-container {
-                height: 300px;
+                height: 320px; /* Aumentado para dar más espacio al contenido */
             }
 
             .banner-title {
                 font-size: 2em;
+                margin-bottom: 15px; /* Reducido para ahorrar espacio vertical */
             }
 
             .banner-subtitle {
                 font-size: 1.2em;
+                margin-bottom: 20px; /* Reducido de 30px */
             }
 
             .banner .cta-button {
-                padding: 12px 30px;
-                font-size: 1em;
+                padding: 10px 20px; /* Reducido de 12px 30px */
+                font-size: 0.9em;
+                white-space: nowrap; /* Evita que el texto se divida en múltiples líneas */
+                max-width: 90%; /* Limita el ancho máximo */
+                overflow: hidden; /* Oculta el contenido que excede */
+                text-overflow: ellipsis; /* Muestra puntos suspensivos si el texto es demasiado largo */
+                display: inline-block; /* Asegura que el botón se comporte como un bloque en línea */
             }
 
             .tech-icon {
                 font-size: 30px;
+                margin-bottom: 10px; /* Reducido de 20px */
             }
         }
 
-        /* Ajustes para pantallas muy pequeñas */
+        /* Ajustes adicionales para pantallas muy pequeñas */
         @media (max-width: 480px) {
             .banner-container {
-                height: 250px;
+                height: 300px; /* Aumentado ligeramente para dar más espacio */
             }
 
             .banner-title {
-                font-size: 1.8em;
+                font-size: 1.6em;
+                margin-bottom: 10px; /* Reducido para ahorrar espacio vertical */
             }
 
             .banner-subtitle {
-                font-size: 1em;
+                font-size: 0.9em;
+                margin-bottom: 15px;
             }
 
             .banner .cta-button {
-                padding: 10px 25px;
-                font-size: 0.9em;
+                padding: 8px 16px;
+                font-size: 0.85em;
+                max-width: 80%; /* Más estrecho para pantallas muy pequeñas */
+                margin: 0 auto; /* Centrar el botón */
+            }
+            
+            /* Reducir el espacio vertical entre elementos */
+            .tech-icon {
+                margin-bottom: 5px;
+                font-size: 25px;
             }
         }
         </style>
