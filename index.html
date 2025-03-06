@@ -599,6 +599,197 @@
             float: left;
             color: var(--text);
         }
+        
+        /* Estilos para M84 Gaming Banner */
+        .m84-banner-section {
+            max-width: 1200px;
+            margin: 4rem auto;
+            padding: 0 1rem;
+        }
+
+        .m84-banner-section h2 {
+            color: var(--text);
+            font-size: 2rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .banner-container {
+            width: 100%;
+            max-width: 1200px;
+            height: 400px;
+            margin: 0 auto;
+            position: relative;
+            overflow: hidden;
+            border-radius: 1rem;
+            box-shadow: var(--shadow-lg);
+            transition: transform 0.3s ease;
+        }
+
+        .banner-container:hover {
+            transform: translateY(-5px);
+        }
+
+        .banner-link {
+            text-decoration: none;
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .banner {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, #1a1a1a, #333333);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            position: relative;
+            animation: gradientBG 10s ease infinite;
+        }
+
+        .banner::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80') center/cover;
+            opacity: 0.1;
+        }
+
+        .banner-title {
+            font-size: 3.5em;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            animation: slideIn 1s ease-out;
+            color: #00ff00;
+            position: relative;
+            z-index: 1;
+        }
+
+        .banner-subtitle {
+            font-size: 1.5em;
+            margin-bottom: 30px;
+            text-align: center;
+            animation: slideIn 1s ease-out 0.3s backwards;
+            color: #ffffff;
+            position: relative;
+            z-index: 1;
+        }
+
+        .banner .cta-button {
+            padding: 15px 40px;
+            font-size: 1.2em;
+            background-color: #00ff00;
+            color: #000000;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: transform 0.3s, background-color 0.3s;
+            animation: bounceIn 1s ease-out 0.6s backwards;
+            font-weight: bold;
+            position: relative;
+            z-index: 1;
+        }
+
+        .banner-link:hover .cta-button {
+            background-color: #00cc00;
+            transform: scale(1.05);
+        }
+
+        .tech-icon {
+            font-size: 40px;
+            margin-bottom: 20px;
+            animation: pulse 2s ease-in-out infinite;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Animaciones */
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.05); }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .m84-banner-section {
+                margin: 2rem auto;
+            }
+
+            .banner-container {
+                height: 300px;
+            }
+
+            .banner-title {
+                font-size: 2em;
+            }
+
+            .banner-subtitle {
+                font-size: 1.2em;
+            }
+
+            .banner .cta-button {
+                padding: 12px 30px;
+                font-size: 1em;
+            }
+
+            .tech-icon {
+                font-size: 30px;
+            }
+        }
+
+        /* Ajustes para pantallas muy pequeñas */
+        @media (max-width: 480px) {
+            .banner-container {
+                height: 250px;
+            }
+
+            .banner-title {
+                font-size: 1.8em;
+            }
+
+            .banner-subtitle {
+                font-size: 1em;
+            }
+
+            .banner .cta-button {
+                padding: 10px 25px;
+                font-size: 0.9em;
+            }
+        }
+        </style>
     </style>
 </head>
 <body>
@@ -634,6 +825,23 @@
         >
             Visitar San Luis Marketplaces
         </a>
+    </section>
+
+    <!-- Sección M84 Gaming Banner -->
+    <section class="m84-banner-section">
+        <div class="section-header" style="text-align: center; margin-bottom: 2rem;">
+            <h2>Tienda Destacada</h2>
+        </div>
+        <div class="banner-container">
+            <a href="https://www.m84x-hardware.com.ar/" class="banner-link" target="_blank" rel="noopener noreferrer">
+                <div class="banner">
+                    <div class="tech-icon">⚡</div>
+                    <h1 class="banner-title">M84X HARDWARE</h1>
+                    <p class="banner-subtitle">Tu Destino Tecnológico de Confianza</p>
+                    <div class="cta-button">INGRESAR A LA TIENDA</div>
+                </div>
+            </a>
+        </div>
     </section>
 
     <!-- Sección de Comercios -->
