@@ -766,11 +766,11 @@
             .banner .cta-button {
                 padding: 10px 20px; /* Reducido de 12px 30px */
                 font-size: 0.9em;
-                white-space: nowrap; /* Evita que el texto se divida en múltiples líneas */
-                max-width: 90%; /* Limita el ancho máximo */
-                overflow: hidden; /* Oculta el contenido que excede */
-                text-overflow: ellipsis; /* Muestra puntos suspensivos si el texto es demasiado largo */
-                display: inline-block; /* Asegura que el botón se comporte como un bloque en línea */
+                white-space: nowrap; 
+                max-width: 90%; 
+                overflow: hidden; 
+                text-overflow: ellipsis; 
+                display: inline-block; 
             }
 
             .tech-icon {
@@ -782,12 +782,12 @@
         /* Ajustes adicionales para pantallas muy pequeñas */
         @media (max-width: 480px) {
             .banner-container {
-                height: 300px; /* Aumentado ligeramente para dar más espacio */
+                height: 300px; 
             }
 
             .banner-title {
                 font-size: 1.6em;
-                margin-bottom: 10px; /* Reducido para ahorrar espacio vertical */
+                margin-bottom: 10px;
             }
 
             .banner-subtitle {
@@ -798,11 +798,10 @@
             .banner .cta-button {
                 padding: 8px 16px;
                 font-size: 0.85em;
-                max-width: 80%; /* Más estrecho para pantallas muy pequeñas */
-                margin: 0 auto; /* Centrar el botón */
+                max-width: 80%; 
+                margin: 0 auto; 
             }
             
-            /* Reducir el espacio vertical entre elementos */
             .tech-icon {
                 margin-bottom: 5px;
                 font-size: 25px;
@@ -891,117 +890,13 @@
             font-size: 35px;
         }
 
-        /* Ajuste para el banner móvil */
-        .mobile-download-banner .app-icon {
-            width: 40px;
-            height: 40px;
-            margin: 0 10px 0 0;
-            border-radius: 10px;
-        }
-
-        .mobile-download-banner .app-icon i {
-            font-size: 24px;
-
-            .mobile-download-banner .download-button {
-                padding: 6px 12px;
-                font-size: 0.9rem;
-            }
-        }
         /* Ocultar la barra lateral cuando estamos dentro de la app */
         body.inside-tilisarao-app .app-download-sidebar {
             display: none !important;
         }
-    
-        /* Ocultar la barra lateral cuando estamos dentro de la app */
-        body.inside-tilisarao-app .app-download-sidebar {
-            display: none !important;
-        }
-        
+
         /* Ocultar el banner móvil cuando estamos dentro de la app */
         body.inside-tilisarao-app .mobile-download-banner {
-            display: none !important;
-        }
-    </style>
-        </style>
-
-        <!-- Add this HTML just before the closing </body> tag -->
-        <!-- Desktop Sidebar -->
-        <div class="app-download-sidebar">
-            <div class="tab">Descargar App</div>
-            <div class="app-download-content">
-                <div class="app-icon">
-                    <i class="fas fa-mobile-alt"></i>
-                </div>
-                <h3>Tilisarao Market App</h3>
-                <p>¡Descarga nuestra app y accede a todas las funciones!</p>
-                <a href="https://www.mediafire.com/file/s6fpemgnh002yr8/_Tilisarao_Marketplace_18599641.apk/file" 
-                class="download-button" 
-                target="_blank">
-                    Descargar APK
-                </a>
-            </div>
-        </div>
-
-        <!-- Modificar el banner móvil así: -->
-    <div class="mobile-download-banner" style="display: none;">
-        <div class="app-icon">
-            <i class="fas fa-mobile-alt"></i>
-        </div>
-        <div style="flex: 1; padding: 0 10px;">
-            <h4 style="margin: 0; font-size: 1rem;">Tilisarao Market App</h4>
-            <p style="margin: 2px 0; font-size: 0.8rem;">Descarga nuestra aplicación</p>
-        </div>
-        <a href="https://www.mediafire.com/file/s6fpemgnh002yr8/_Tilisarao_Marketplace_18599641.apk/file" 
-        class="download-button" 
-        target="_blank">
-            Descargar
-        </a>
-    </div>
-
-    <!-- Modificar el JavaScript existente -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Check if device is mobile
-            if (window.innerWidth <= 768) {
-                document.querySelector('.mobile-download-banner').style.display = 'flex';
-            }
-    
-            // Update on resize
-            window.addEventListener('resize', function() {
-                const mobileBanner = document.querySelector('.mobile-download-banner');
-                if (window.innerWidth <= 768) {
-                    mobileBanner.style.display = 'flex';
-                } else {
-                    mobileBanner.style.display = 'none';
-                }
-            });
-    
-            // Función para detectar si estamos dentro de la app
-            function isRunningInsideApp() {
-                return navigator.userAgent.indexOf('TilisaraoMarketApp') > -1;
-            }
-        
-            // Función para agregar una clase al body si estamos dentro de la app
-            function addAppClassToBody() {
-                if (isRunningInsideApp()) {
-                    document.body.classList.add('inside-tilisarao-app');
-                    // Ocultar el banner móvil si estamos dentro de la app
-                    const mobileBanner = document.querySelector('.mobile-download-banner');
-                    if (mobileBanner) {
-                        mobileBanner.style.display = 'none';
-                    }
-                }
-            }
-        
-            // Ejecutar la función al cargar la página
-            window.onload = addAppClassToBody;
-        });
-        </script>
-    <style>
-        /* Estilos existentes */
-    
-        /* Ocultar la barra lateral cuando estamos dentro de la app */
-        body.inside-tilisarao-app .app-download-sidebar {
             display: none !important;
         }
     </style>
@@ -1220,6 +1115,91 @@
             <button id="sendBtn">Enviar</button>
         </div>
     </div>
+
+    <!-- Eliminamos la lógica que forzaba el banner móvil para que no aparezca en la app -->
+    <div class="app-download-sidebar">
+        <div class="tab">Descargar App</div>
+        <div class="app-download-content">
+            <div class="app-icon">
+                <i class="fas fa-mobile-alt"></i>
+            </div>
+            <h3>Tilisarao Market App</h3>
+            <p>¡Descarga nuestra app y accede a todas las funciones!</p>
+            <a href="https://www.mediafire.com/file/s6fpemgnh002yr8/_Tilisarao_Marketplace_18599641.apk/file" 
+               class="download-button" 
+               target="_blank">
+                    Descargar APK
+            </a>
+        </div>
+    </div>
+
+    <div class="mobile-download-banner" style="display: none;">
+        <div class="app-icon">
+            <i class="fas fa-mobile-alt"></i>
+        </div>
+        <div style="flex: 1; padding: 0 10px;">
+            <h4 style="margin: 0; font-size: 1rem;">Tilisarao Market App</h4>
+            <p style="margin: 2px 0; font-size: 0.8rem;">Descarga nuestra aplicación</p>
+        </div>
+        <a href="https://www.mediafire.com/file/s6fpemgnh002yr8/_Tilisarao_Marketplace_18599641.apk/file" 
+           class="download-button" 
+           target="_blank">
+            Descargar
+        </a>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // ------------------------------------------------------------------------------------
+            // Comentado: Ya no forzamos la visualización del banner móvil, así evitamos que salga arriba en la app.
+            // ------------------------------------------------------------------------------------
+            /*
+            // Check if device is mobile
+            if (window.innerWidth <= 768) {
+                document.querySelector('.mobile-download-banner').style.display = 'flex';
+            }
+
+            window.addEventListener('resize', function() {
+                const mobileBanner = document.querySelector('.mobile-download-banner');
+                if (window.innerWidth <= 768) {
+                    mobileBanner.style.display = 'flex';
+                } else {
+                    mobileBanner.style.display = 'none';
+                }
+            });
+            */
+
+            // Función para detectar si estamos dentro de la app
+            function isRunningInsideApp() {
+                return navigator.userAgent.indexOf('TilisaraoMarketApp') > -1;
+            }
+        
+            // Función para agregar una clase al body si estamos dentro de la app
+            function addAppClassToBody() {
+                if (isRunningInsideApp()) {
+                    document.body.classList.add('inside-tilisarao-app');
+                    // Ocultar el banner móvil si estamos dentro de la app
+                    const mobileBanner = document.querySelector('.mobile-download-banner');
+                    if (mobileBanner) {
+                        mobileBanner.style.display = 'none';
+                    }
+                }
+            }
+        
+            // Ejecutar la función al cargar la página
+            window.onload = addAppClassToBody;
+        });
+    </script>
+
+    <style>
+        /* Ocultar la barra lateral y el banner móvil cuando estamos dentro de la app */
+        body.inside-tilisarao-app .app-download-sidebar {
+            display: none !important;
+        }
+        body.inside-tilisarao-app .mobile-download-banner {
+            display: none !important;
+        }
+    </style>
 
     <script>
         // Datos de ejemplo
@@ -1551,7 +1531,6 @@
                 return chatResponses.option3.main;
             }
 
-            // Submenús de la opción 3
             if (['3a', '3b', '3c', '3d'].includes(text)) {
                 selectedSubOption = text;
                 awaitingEmail = true;
