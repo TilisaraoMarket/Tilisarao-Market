@@ -911,6 +911,17 @@
         body.inside-tilisarao-app .app-download-sidebar {
             display: none !important;
         }
+    
+        /* Ocultar la barra lateral cuando estamos dentro de la app */
+        body.inside-tilisarao-app .app-download-sidebar {
+            display: none !important;
+        }
+        
+        /* Ocultar el banner móvil cuando estamos dentro de la app */
+        body.inside-tilisarao-app .mobile-download-banner {
+            display: none !important;
+        }
+    </style>
         </style>
 
         <!-- Add this HTML just before the closing </body> tag -->
@@ -947,40 +958,45 @@
         </a>
     </div>
 
-    <!-- Add this JavaScript to handle mobile banner display -->
+    <!-- Modificar el JavaScript existente -->
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Check if device is mobile
-        if (window.innerWidth <= 768) {
-            document.querySelector('.mobile-download-banner').style.display = 'flex';
-        }
-
-        // Update on resize
-        window.addEventListener('resize', function() {
-            const mobileBanner = document.querySelector('.mobile-download-banner');
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if device is mobile
             if (window.innerWidth <= 768) {
-                mobileBanner.style.display = 'flex';
-            } else {
-                mobileBanner.style.display = 'none';
+                document.querySelector('.mobile-download-banner').style.display = 'flex';
             }
+    
+            // Update on resize
+            window.addEventListener('resize', function() {
+                const mobileBanner = document.querySelector('.mobile-download-banner');
+                if (window.innerWidth <= 768) {
+                    mobileBanner.style.display = 'flex';
+                } else {
+                    mobileBanner.style.display = 'none';
+                }
+            });
+    
+            // Función para detectar si estamos dentro de la app
+            function isRunningInsideApp() {
+                return navigator.userAgent.indexOf('TilisaraoMarketApp') > -1;
+            }
+        
+            // Función para agregar una clase al body si estamos dentro de la app
+            function addAppClassToBody() {
+                if (isRunningInsideApp()) {
+                    document.body.classList.add('inside-tilisarao-app');
+                    // Ocultar el banner móvil si estamos dentro de la app
+                    const mobileBanner = document.querySelector('.mobile-download-banner');
+                    if (mobileBanner) {
+                        mobileBanner.style.display = 'none';
+                    }
+                }
+            }
+        
+            // Ejecutar la función al cargar la página
+            window.onload = addAppClassToBody;
         });
-
-        // Función para detectar si estamos dentro de la app
-        function isRunningInsideApp() {
-            return navigator.userAgent.indexOf('TilisaraoMarketApp') > -1;
-        }
-    
-        // Función para agregar una clase al body si estamos dentro de la app
-        function addAppClassToBody() {
-            if (isRunningInsideApp()) {
-                document.body.classList.add('inside-tilisarao-app');
-            }
-        }
-    
-        // Ejecutar la función al cargar la página
-        window.onload = addAppClassToBody;
-    });
-    </script>
+        </script>
     <style>
         /* Estilos existentes */
     
