@@ -907,6 +907,10 @@
                 font-size: 0.9rem;
             }
         }
+        /* Ocultar la barra lateral cuando estamos dentro de la app */
+        body.inside-tilisarao-app .app-download-sidebar {
+            display: none !important;
+        }
         </style>
 
         <!-- Add this HTML just before the closing </body> tag -->
@@ -928,41 +932,62 @@
         </div>
 
         <!-- Modificar el banner móvil así: -->
-        <div class="mobile-download-banner" style="display: none;">
-            <div class="app-icon">
-                <i class="fas fa-mobile-alt"></i>
-            </div>
-            <div style="flex: 1; padding: 0 10px;">
-                <h4 style="margin: 0; font-size: 1rem;">Tilisarao Market App</h4>
-                <p style="margin: 2px 0; font-size: 0.8rem;">Descarga nuestra aplicación</p>
-            </div>
-            <a href="https://www.mediafire.com/file/s6fpemgnh002yr8/_Tilisarao_Marketplace_18599641.apk/file" 
-            class="download-button" 
-            target="_blank">
-                Descargar
-            </a>
+    <div class="mobile-download-banner" style="display: none;">
+        <div class="app-icon">
+            <i class="fas fa-mobile-alt"></i>
         </div>
+        <div style="flex: 1; padding: 0 10px;">
+            <h4 style="margin: 0; font-size: 1rem;">Tilisarao Market App</h4>
+            <p style="margin: 2px 0; font-size: 0.8rem;">Descarga nuestra aplicación</p>
+        </div>
+        <a href="https://www.mediafire.com/file/s6fpemgnh002yr8/_Tilisarao_Marketplace_18599641.apk/file" 
+        class="download-button" 
+        target="_blank">
+            Descargar
+        </a>
+    </div>
 
-        <!-- Add this JavaScript to handle mobile banner display -->
-        <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Check if device is mobile
+    <!-- Add this JavaScript to handle mobile banner display -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if device is mobile
+        if (window.innerWidth <= 768) {
+            document.querySelector('.mobile-download-banner').style.display = 'flex';
+        }
+
+        // Update on resize
+        window.addEventListener('resize', function() {
+            const mobileBanner = document.querySelector('.mobile-download-banner');
             if (window.innerWidth <= 768) {
-                document.querySelector('.mobile-download-banner').style.display = 'flex';
+                mobileBanner.style.display = 'flex';
+            } else {
+                mobileBanner.style.display = 'none';
             }
-
-            // Update on resize
-            window.addEventListener('resize', function() {
-                const mobileBanner = document.querySelector('.mobile-download-banner');
-                if (window.innerWidth <= 768) {
-                    mobileBanner.style.display = 'flex';
-                } else {
-                    mobileBanner.style.display = 'none';
-                }
-            });
         });
-        </script>
-        </style>
+
+        // Función para detectar si estamos dentro de la app
+        function isRunningInsideApp() {
+            return navigator.userAgent.indexOf('TilisaraoMarketApp') > -1;
+        }
+    
+        // Función para agregar una clase al body si estamos dentro de la app
+        function addAppClassToBody() {
+            if (isRunningInsideApp()) {
+                document.body.classList.add('inside-tilisarao-app');
+            }
+        }
+    
+        // Ejecutar la función al cargar la página
+        window.onload = addAppClassToBody;
+    });
+    </script>
+    <style>
+        /* Estilos existentes */
+    
+        /* Ocultar la barra lateral cuando estamos dentro de la app */
+        body.inside-tilisarao-app .app-download-sidebar {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
