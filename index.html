@@ -1221,46 +1221,55 @@
         background: rgba(255, 255, 255, 0.3);
     }
     
-    /* Responsive */
+    /* --- FIX: Mostrar botones del banner Excel en móviles --- */
     @media (max-width: 768px) {
-        /* Estilos generales dentro del banner */
-        .banner-content {
-            flex-direction: column;
-            padding: 2rem;
-            gap: 1.5rem;
-            text-align: center;
+            /* Solo para el banner del Editor de Excel */
+            .excel-editor-banner .banner-container {
+                height: auto;      /* Deja que crezca lo necesario */
+                overflow: visible; /* No recortamos el contenido   */
+            }
         }
-    
-        .banner-icon {
-            margin: 0 auto;
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            /* Estilos generales dentro del banner */
+            .banner-content {
+                flex-direction: column;
+                padding: 2rem;
+                gap: 1.5rem;
+                text-align: center;
+            }
+
+            .banner-icon {
+                margin: 0 auto;
+            }
+
+            .banner-features li {
+                justify-content: center;
+            }
+
+            .pricing {
+                justify-content: center;
+            }
+
+            .banner-cta {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            /* Ajustes específicos para el banner del Editor de Excel */
+            .excel-editor-banner .banner-cta {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .excel-editor-banner .buy-button,
+            .excel-editor-banner .demo-button {
+                width: 100%;
+                max-width: 300px; /* Opcional: define un ancho máximo */
+                justify-content: center;
+            }
         }
-    
-        .banner-features li {
-            justify-content: center;
-        }
-    
-        .pricing {
-            justify-content: center;
-        }
-    
-        .banner-cta {
-            flex-direction: column;
-            align-items: center;
-        }
-    
-        /* Ajustes específicos para el banner del Editor de Excel */
-        .excel-editor-banner .banner-cta {
-            flex-direction: column;
-            align-items: center;
-        }
-    
-        .excel-editor-banner .buy-button,
-        .excel-editor-banner .demo-button {
-            width: 100%;
-            max-width: 300px; /* Opcional: define un ancho máximo */
-            justify-content: center;
-        }
-    }
     </style>
 
     <!-- Sección de Comercios -->
