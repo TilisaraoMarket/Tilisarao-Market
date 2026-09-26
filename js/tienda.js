@@ -12,8 +12,8 @@
   const KEY = typeof SUPABASE_ANON_KEY !== 'undefined' ? SUPABASE_ANON_KEY : '';
   const BUCKET = typeof SUPABASE_BUCKET !== 'undefined' ? SUPABASE_BUCKET : 'fotos-productos';
   const CATS = typeof CATEGORIAS !== 'undefined' ? CATEGORIAS : [];
-  const API = URL_BASE + '/rest/v1';
-  const MAX_FOTO_MB = 5;
+    const API = URL_BASE + '/rest/v1';
+
 
   let session = null;
   const listeners = [];
@@ -369,21 +369,163 @@
   // --------------------------------------------------------------------------
   //  Fotos (Storage)
   // --------------------------------------------------------------------------
+  // --------------------------------------------------------------------------
+  //  Ajustes del sistema (editables desde el Table Editor de Supabase)
+  //  Si la tabla no existe o falla la red, se usan estos valores por defecto:
+  //  el sitio nunca se rompe por esto.
+  // --------------------------------------------------------------------------
+
+  const AJUSTES_POR_DEFECTO = {
+    img_habilitada: true,
+    img_ancho_max: 1000,
+    img_alto_max: 1000,
+    img_calidad: 0.80,
+    img_peso_max_kb: 200,
+    foto_peso_max_mb: 5,
+    productos_por_usuario: 40
+  };
+
+  let ajustesCargados = null;
+
+  async function ajustes() {
+    if (ajustesCargados) return ajustesCargados;
+    ajustesCargados = Object.assign({}, AJUSTES_POR_DEFECTO);
+    try {
+      const res = await api('/config_sistema?id=eq.1&select=*', { method: 'GET' });
+      if (Array.isArray(res) && res[0]) {
+        const f = res[0];
+        ['img_habilitada', 'img_ancho_max', 'img_alto_max', 'img_peso_max_kb',
+         'productos_por_usuario'].forEach(k => {
+          if (f[k] !== null && f[k] !== undefined) ajustesCargados[k] = f[k];
+        });
+        ['img_calidad', 'foto_peso_max_mb'].forEach(k => {
+          const n = Number(f[k]);
+          if (!Number.isNaN(n) && n > 0) ajustesCargados[k] = n;
+        });
+      }
+    } catch (e) {
+      console.warn('No se pudieron leer los ajustes, uso los valores por defecto:', e.message);
+    }
+    return ajustesCargados;
+  }
+
   function validarFoto(archivo) {
+    const max = ajustesCargados ? ajustesCargados.foto_peso_max_mb : AJUSTES_POR_DEFECTO.foto_peso_max_mb;
     if (!archivo) return 'Elegí una foto.';
     if (!/^image\//.test(archivo.type)) return 'El archivo tiene que ser una imagen (JPG o PNG).';
-    if (archivo.size > MAX_FOTO_MB * 1024 * 1024) {
-      return 'La foto pesa más de ' + MAX_FOTO_MB + 'MB. Subí una más liviana.';
+    if (archivo.size > max * 1024 * 1024) {
+      return 'La foto pesa más de ' + max + 'MB. Subí una más liviana.';
     }
     return null;
   }
 
-  async function subirFoto(archivo) {
+  /** Abre una imagen respetando su orientacion EXIF (fotos de celular). */
+  async function crearBitmap(archivo) {
+    if (typeof createImageBitmap === 'function') {
+      try {
+        return await createImageBitmap(archivo, { imageOrientation: 'from-image' });
+      } catch (e) { /* algunos navegadores lo rechazan, sigue el camino de abajo */ }
+    }
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(archivo);
+      img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('no se pudo leer la imagen')); };
+      img.src = url;
+    });
+  }
+
+  /**
+   * Comprime la foto en el navegador antes de subirla.
+   *
+   * Recorta al tamaño maximo manteniendo la proporcion y va bajando la calidad
+   * hasta entrar en el peso objetivo. Devuelve {archivo, info} con info para
+   * mostrarle al vendedor cuanto se le achico.
+   */
+  async function comprimirFoto(archivo) {
+    const a = await ajustes();
+    const sinCambios = { archivo: archivo, info: null };
+
+    if (!a.img_habilitada) return sinCambios;
+    if (!/^image\//.test(archivo.type)) return sinCambios;
+    // si ya estaPEGAR_AQUI chiquita y liviana, no tocar
+    if (archivo.size <= a.img_peso_max_kb * 1024 / 2) return sinCambios;
+
+    let bitmap;
+    try {
+      bitmap = await crearBitmap(archivo);
+    } catch (e) {
+      console.warn('No se pudo procesar la imagen, subo la original:', e.message);
+      return sinCambios;
+    }
+
+    const w0 = bitmap.width, h0 = bitmap.height;
+    const factor = Math.min(1, a.img_ancho_max / w0, a.img_alto_max / h0);
+    const w = Math.max(1, Math.round(w0 * factor));
+    const h = Math.max(1, Math.round(h0 * factor));
+
+    const lienzo = document.createElement('canvas');
+    const ctx = lienzo.getContext('2d');
+    lienzo.width = w;
+    lienzo.height = h;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(bitmap, 0, 0, w, h);
+
+    try {
+      // baja la calidad hasta cumplir el peso objetivo
+      const objetivo = a.img_peso_max_kb * 1024;
+      let calidad = a.img_calidad;
+      let blob = null;
+
+      for (let intento = 0; intento < 6; intento++) {
+        blob = await new Promise(res => lienzo.toBlob(res, 'image/jpeg', calidad));
+        if (!blob) break;
+        if (blob.size <= objetivo) break;
+        calidad = Math.max(0.4, calidad - 0.12);
+      }
+
+      // si ni bajando calidad entra, achica un poco mas y reintenta
+      if (blob && blob.size > objetivo) {
+        const escala = Math.max(0.4, Math.sqrt(objetivo / blob.size) * 0.95);
+        const w2 = Math.max(1, Math.round(w * escala));
+        const h2 = Math.max(1, Math.round(h * escala));
+        lienzo.width = w2;
+        lienzo.height = h2;
+        const ctx2 = lienzo.getContext('2d');
+        ctx2.fillStyle = '#ffffff';
+        ctx2.fillRect(0, 0, w2, h2);
+        ctx2.drawImage(bitmap, 0, 0, w2, h2);
+        blob = await new Promise(res => lienzo.toBlob(res, 'image/jpeg', calidad));
+      }
+
+      if (bitmap.close) bitmap.close();
+      if (!blob || blob.size >= archivo.size) return sinCambios;
+
+      const nombre = (archivo.name || 'foto').replace(/\.[^.]+$/, '') + '.jpg';
+      const nuevo = new File([blob], nombre, { type: 'image/jpeg', lastModified: Date.now() });
+
+      return {
+        archivo: nuevo,
+        info: { antes: archivo.size, despues: nuevo.size, ancho: lienzo.width, alto: lienzo.height }
+      };
+    } catch (e) {
+      console.warn('Fallo la compresion, subo la original:', e.message);
+      if (bitmap.close) bitmap.close();
+      return sinCambios;
+    }
+  }
+
+  /** Sube la foto ya comprimida. Devuelve { ruta, info }. */
+  async function subirFoto(archivoOriginal) {
     const u = usuarioActual();
     if (!u) throw new Error('Tenés que iniciar sesión para subir una foto.');
 
-    const problema = validarFoto(archivo);
+    const problema = validarFoto(archivoOriginal);
     if (problema) throw new Error(problema);
+
+    // achica la foto en el navegador antes de mandarla
+    const { archivo, info } = await comprimirFoto(archivoOriginal);
 
     const ext = (archivo.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
     const ruta = u.id + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + ext;
@@ -402,7 +544,10 @@
       throw errorLegible(await res.json().catch(() => ({})), res.status);
     }
 
-    return URL_BASE + '/storage/v1/object/public/' + BUCKET + '/' + ruta;
+    return {
+      url: URL_BASE + '/storage/v1/object/public/' + BUCKET + '/' + ruta,
+      info: info
+    };
   }
 
   async function borrarFoto(url) {
@@ -510,8 +655,8 @@
   // --------------------------------------------------------------------------
   const Tienda = {
     configOk: configOk,
-    CATEGORIAS: CATS,
-    MAX_FOTO_MB: MAX_FOTO_MB,
+      CATEGORIAS: CATS,
+
 
     escapeHtml: escapeHtml,
     normalizarWhatsApp: normalizarWhatsApp,
@@ -531,7 +676,9 @@
     actualizarPerfil: actualizarPerfil,
     asegurarPerfil: asegurarPerfil,
 
+    ajustes: ajustes,
     validarFoto: validarFoto,
+    comprimirFoto: comprimirFoto,
     subirFoto: subirFoto,
     borrarFoto: borrarFoto,
 

@@ -2982,7 +2982,17 @@
 
                         let fotoUrl = null;
                         try {
-                            fotoUrl = await Tienda.subirFoto(archivo);
+                            btn.textContent = 'Optimizando foto...';
+                            const subida = await Tienda.subirFoto(archivo);
+                            fotoUrl = subida.url;
+
+                            if (subida.info) {
+                                const antes = Math.round(subida.info.antes / 1024);
+                                const despues = Math.round(subida.info.despues / 1024);
+                                const pct = Math.round((1 - subida.info.despues / subida.info.antes) * 100);
+                                console.log('Foto optimizada: ' + antes + 'KB -> ' + despues + 'KB (' + pct + '% menos)');
+                            }
+
                             btn.textContent = 'Guardando...';
 
                             await Tienda.crearProducto({

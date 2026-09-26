@@ -20,6 +20,9 @@ supabase/
 .qodo
 .idea/
 *.log
+*.ps1
+*.bat
+*.sh
 
 # Dependencias
 node_modules/
