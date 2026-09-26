@@ -107,6 +107,14 @@
     let datos = null;
     try { datos = texto ? JSON.parse(texto) : null; } catch (e) { datos = texto; }
 
+    // PostgREST devuelve PGRST205 tambien cuando recien creo una tabla y esta
+    // recargando su cache de esquema. Dura unos segundos y se solo: se espera
+    // y se reintenta una vez antes deassume que falta la tabla.
+    if (res.status === 404 && datos && datos.code === 'PGRST205' && !yaReintentado) {
+      await new Promise(r => setTimeout(r, 2000));
+      return api(ruta, opciones, true);
+    }
+
     if (!res.ok) {
       throw errorLegible(datos, res.status);
     }
@@ -140,12 +148,13 @@
         'Tu perfil todavia no esta listo. Recargá la pagina con Ctrl+F5 e intentá de nuevo.';
     } else if (datos && datos.code === 'PGRST205' || /Could not find the table|schema cache/i.test(msg)) {
       e.mensajeAmigable =
-        'Falta la base de datos: todavía no se ejecutó supabase-setup.sql en Supabase. ' +
-        'Pegalo en el SQL Editor y volvé a intentar.';
+        'La base de datos no responde en este momento. La tabla puede faltar, ' +
+        'o Supabase estar recargando datos. Probá de nuevo en un minuto; ' +
+        'si sigue igual, avisame y lo revisamos.';
     } else if (/bucket|storage/i.test(msg) && /not found|does not exist/i.test(msg)) {
       e.mensajeAmigable =
-        'Falta el storage: todavía no se ejecutó supabase-setup.sql en Supabase. ' +
-        'Pegalo en el SQL Editor y volvé a intentar.';
+        'No se encuentra el espacio de fotos en Supabase. Probá de nuevo en un minuto; ' +
+        'si sigue igual, avisame y lo revisamos.';
     } else if (status === 400 && /violates row-level security/i.test(msg)) {
       e.mensajeAmigable = 'No tenés permiso para esa operación.';
     } else if (status === 401) {
