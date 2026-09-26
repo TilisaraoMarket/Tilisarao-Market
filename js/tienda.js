@@ -340,13 +340,33 @@
   // --------------------------------------------------------------------------
   //  Perfil
   // --------------------------------------------------------------------------
+  // En este proyecto las escrituras directas sobre la tabla public.perfiles
+  // devuelven PGRST205 ("no se encuentra la tabla") aunque la tabla exista y los
+  // permisos esten bien: es un problema de PostgREST, no del codigo. Por eso los
+  // datos del vendedor se guardan con funciones de base de datos (rpc), que si
+  // se resuelven bien. Las funciones devuelven la fila del perfil, asi que
+  // tampoco hace falta leer la tabla.
+
   async function obtenerPerfil(userId) {
     const id = userId || (usuarioActual() && usuarioActual().id);
     if (!id) return null;
-    const res = await api('/profiles?id=eq.' + encodeURIComponent(id) + '&select=*', {
-      prefer: 'return=representation'
-    });
-    return (res && res[0]) || null;
+    try {
+      const res = await api('/rpc/crear_mi_perfil', {
+        method: 'POST',
+        body: { p_nombre: '' }
+      });
+      return (res && res[0]) || null;
+    } catch (e) {
+      // si la funcion no esta disponible, se intenta la lectura directa
+      try {
+        const res = await api('/profiles?id=eq.' + encodeURIComponent(id) + '&select=*', {
+          prefer: 'return=representation'
+        });
+        return (res && res[0]) || null;
+      } catch (e2) {
+        return null;
+      }
+    }
   }
 
   async function actualizarPerfil(userId, campos) {
@@ -357,10 +377,9 @@
     if (campos.telefono !== undefined) patch.telefono = normalizarWhatsApp(campos.telefono).slice(0, 20);
     if (!Object.keys(patch).length) return null;
 
-    const res = await api('/profiles?id=eq.' + encodeURIComponent(id), {
-      method: 'PATCH',
-      body: patch,
-      prefer: 'return=representation'
+    const res = await api('/rpc/guardar_datos_vendedor', {
+      method: 'POST',
+      body: { p_nombre: patch.nombre || '', p_telefono: patch.telefono || '' }
     });
     return (res && res[0]) || null;
   }
@@ -374,24 +393,21 @@
    * Con esto la app se auto-repara sola.
    */
   async function asegurarPerfil(userId) {
-    const id = userId || (usuarioActual() && usuarioActual().id);
-    if (!id) return null;
-    try {
-      const actual = await obtenerPerfil(id);
-      if (actual) return actual;
-      const u = usuarioActual();
-      const nombre = (u && (u.user_metadata && u.user_metadata.nombre)) || '';
-      const res = await api('/profiles', {
-        method: 'POST',
-        body: { id: id, nombre: String(nombre).slice(0, 80), telefono: '' },
-        prefer: 'return=representation'
-      });
-      return (res && res[0]) || null;
-    } catch (e) {
-      console.warn('No se pudo asegurar el perfil:', e.message);
-      return null;
+      const id = userId || (usuarioActual() && usuarioActual().id);
+      if (!id) return null;
+      try {
+        const u = usuarioActual();
+        const nombre = (u && (u.user_metadata && u.user_metadata.nombre)) || '';
+        const res = await api('/rpc/crear_mi_perfil', {
+          method: 'POST',
+          body: { p_nombre: String(nombre).slice(0, 80) }
+        });
+        return (res && res[0]) || null;
+      } catch (e) {
+        console.warn('No se pudo asegurar el perfil:', e.message);
+        return null;
+      }
     }
-  }
 
   // --------------------------------------------------------------------------
   //  Fotos (Storage)
