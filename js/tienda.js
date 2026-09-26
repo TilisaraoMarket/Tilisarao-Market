@@ -128,7 +128,11 @@
     e.status = status;
     e.datos = datos;
 
-    if (/duplicate key|already registered|already exists/i.test(msg)) {
+      if (/No API key found|apikey/i.test(msg)) {
+        e.mensajeAmigable =
+          'Falta la configuraci\u00f3n de Supabase en el sitio. Recarg\u00e1 con Ctrl+F5. ' +
+          'Si sigue igual, avisame y lo reviso.';
+      } else if (/duplicate key|already registered|already exists/i.test(msg)) {
       e.mensajeAmigable = 'Ese correo ya está registrado. Probá iniciar sesión.';
     } else if (/Invalid login credentials/i.test(msg)) {
       e.mensajeAmigable = 'Correo o contraseña incorrectos.';
