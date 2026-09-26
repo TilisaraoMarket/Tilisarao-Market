@@ -1,0 +1,547 @@
+/* ============================================================================
+ *  Tilisarao Market - Lógica de vendedores y publicaciones
+ *  Sin dependencias. Usa la API REST de Supabase directamente.
+ * ==========================================================================*/
+(function (global) {
+  'use strict';
+
+  // --------------------------------------------------------------------------
+  //  Config
+  // --------------------------------------------------------------------------
+  const URL_BASE = typeof SUPABASE_URL !== 'undefined' ? SUPABASE_URL : '';
+  const KEY = typeof SUPABASE_ANON_KEY !== 'undefined' ? SUPABASE_ANON_KEY : '';
+  const BUCKET = typeof SUPABASE_BUCKET !== 'undefined' ? SUPABASE_BUCKET : 'fotos-productos';
+  const CATS = typeof CATEGORIAS !== 'undefined' ? CATEGORIAS : [];
+  const API = URL_BASE + '/rest/v1';
+  const MAX_FOTO_MB = 5;
+
+  let session = null;
+  const listeners = [];
+
+  /** ¿El admin ya completó js/supabase-config.js? */
+  function configOk() {
+    return /^https:\/\/.+\.supabase\.co$/.test(URL_BASE) &&
+           KEY.length > 20 && !KEY.startsWith('PEGAR_AQUI');
+  }
+
+  // --------------------------------------------------------------------------
+  //  Utilidades
+  // --------------------------------------------------------------------------
+
+  /** Escapa texto antes de meterlo en innerHTML (evita XSS de descripciones). */
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  /** Sólo letras/números para wa.me: 5491122334456 */
+  function normalizarWhatsApp(tel) {
+    return String(tel || '').replace(/\D/g, '');
+  }
+
+  /** Texto para el link de WhatsApp, con mensaje listo. */
+  function linkWhatsApp(tel, titulo) {
+    const num = normalizarWhatsApp(tel);
+    if (!num) return '';
+    const texto = encodeURIComponent(
+      'Hola! Vi tu publicación "' + (titulo || '') + '" en Tilisarao Market y me interesa.'
+    );
+    return 'https://wa.me/' + num + '?text=' + texto;
+  }
+
+  function etiquetaCategoria(valor) {
+    const c = CATS.find(x => x.value === valor);
+    return c ? c.label : 'Otros';
+  }
+
+  function esCategoriaValida(valor) {
+    return CATS.some(x => x.value === valor);
+  }
+
+  // --------------------------------------------------------------------------
+  //  Capa REST mínima
+  // --------------------------------------------------------------------------
+  async function refrescarToken() {
+    const refresh = localStorage.getItem('tm_refresh');
+    if (!refresh) return false;
+    try {
+      const res = await fetch(URL_BASE + '/auth/v1/token?grant_type=refresh_token', {
+        method: 'POST',
+        headers: { apikey: KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refresh })
+      });
+      if (!res.ok) return false;
+      const datos = await res.json();
+      session.access_token = datos.access_token;
+      if (datos.refresh_token) localStorage.setItem('tm_refresh', datos.refresh_token);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  async function api(ruta, opciones, yaReintentado) {
+    opciones = opciones || {};
+    const cabeceras = {
+      apikey: KEY,
+      Authorization: 'Bearer ' + (session ? session.access_token : KEY),
+      'Content-Type': 'application/json'
+    };
+    if (opciones.prefer) cabeceras.Prefer = opciones.prefer;
+
+    const res = await fetch(API + ruta, {
+      method: opciones.method || 'GET',
+      headers: cabeceras,
+      body: opciones.body ? JSON.stringify(opciones.body) : undefined
+    });
+
+    // El token de acceso dura 1 hora: si expiró, se refresca y se reintenta una vez.
+    if (res.status === 401 && !yaReintentado && session) {
+      if (await refrescarToken()) return api(ruta, opciones, true);
+    }
+
+    if (res.status === 204) return null;
+
+    const texto = await res.text();
+    let datos = null;
+    try { datos = texto ? JSON.parse(texto) : null; } catch (e) { datos = texto; }
+
+    if (!res.ok) {
+      throw errorLegible(datos, res.status);
+    }
+    return datos;
+  }
+
+  /** Traduce los errores de Postgres a algo que se pueda mostrar. */
+  function errorLegible(datos, status) {
+    const msg = (datos && (datos.message || datos.error_description || datos.msg)) || '';
+    const e = new Error(msg || 'Error ' + status);
+    e.status = status;
+    e.datos = datos;
+
+    if (/duplicate key|already registered|already exists/i.test(msg)) {
+      e.mensajeAmigable = 'Ese correo ya está registrado. Probá iniciar sesión.';
+    } else if (/Invalid login credentials/i.test(msg)) {
+      e.mensajeAmigable = 'Correo o contraseña incorrectos.';
+    } else if (/Password should be at least/i.test(msg)) {
+      e.mensajeAmigable = 'La contraseña debe tener al menos 6 caracteres.';
+    } else if (/Email not confirmed/i.test(msg)) {
+      e.mensajeAmigable = 'Tenés que confirmar tu correo primero. Revisá tu email.';
+    } else if (datos && (datos.error_code === 'over_email_send_rate_limit' || /only can send \d+ emails/i.test(msg))) {
+      e.mensajeAmigable =
+        'Se alcanzó el límite de emails de Supabase, así que no se pudo mandar el mail de confirmación. ' +
+        'Esperá una hora, o mejor: apagá "Confirm email" en Authentication → Email, y el registro ' +
+        'deja de necesitar el mail.';
+    } else if (/rate limit|too many/i.test(msg)) {
+      e.mensajeAmigable = 'Demasiados intentos seguidos. Esperá un minuto y probá de nuevo.';
+    } else if (datos && datos.code === '23503') {
+      e.mensajeAmigable =
+        'Tu perfil todavia no esta listo. Recargá la pagina con Ctrl+F5 e intentá de nuevo.';
+    } else if (datos && datos.code === 'PGRST205' || /Could not find the table|schema cache/i.test(msg)) {
+      e.mensajeAmigable =
+        'Falta la base de datos: todavía no se ejecutó supabase-setup.sql en Supabase. ' +
+        'Pegalo en el SQL Editor y volvé a intentar.';
+    } else if (/bucket|storage/i.test(msg) && /not found|does not exist/i.test(msg)) {
+      e.mensajeAmigable =
+        'Falta el storage: todavía no se ejecutó supabase-setup.sql en Supabase. ' +
+        'Pegalo en el SQL Editor y volvé a intentar.';
+    } else if (status === 400 && /violates row-level security/i.test(msg)) {
+      e.mensajeAmigable = 'No tenés permiso para esa operación.';
+    } else if (status === 401) {
+      e.mensajeAmigable = 'Tu sesión expiró. Volvé a iniciar sesión.';
+    } else {
+      e.mensajeAmigable = 'No se pudo completar la operación. Probá de nuevo.';
+    }
+    return e;
+  }
+
+  // --------------------------------------------------------------------------
+  //  Sesión / Auth
+  // --------------------------------------------------------------------------
+  const listenersAuth = [];
+
+  async function restaurarSesion() {
+    if (!configOk()) return null;
+    try {
+      const res = await fetch(URL_BASE + '/auth/v1/token?grant_type=refresh_token', {
+        method: 'POST',
+        headers: { apikey: KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: localStorage.getItem('tm_refresh') || '' })
+      });
+      if (!res.ok) { localStorage.removeItem('tm_refresh'); return null; }
+      const datos = await res.json();
+      session = {
+        access_token: datos.access_token,
+        refresh_token: datos.refresh_token,
+        user: datos.user
+      };
+      localStorage.setItem('tm_refresh', datos.refresh_token || '');
+      notificar();
+      await asegurarPerfil(datos.user && datos.user.id);
+      await tomarPendientes();
+      return session;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function notificar() {
+    listenersAuth.forEach(fn => {
+      try { fn(session); } catch (e) { console.error(e); }
+    });
+  }
+
+  function onAuthChange(fn) {
+    listenersAuth.push(fn);
+    return function () {
+      const i = listenersAuth.indexOf(fn);
+      if (i >= 0) listenersAuth.splice(i, 1);
+    };
+  }
+
+  function usuarioActual() {
+    return session ? session.user : null;
+  }
+
+  function guardarSesion(datos) {
+    session = {
+      access_token: datos.access_token,
+      refresh_token: datos.refresh_token,
+      user: datos.user
+    };
+    if (datos.refresh_token) localStorage.setItem('tm_refresh', datos.refresh_token);
+    notificar();
+    return session;
+  }
+
+  function limpiarSesion() {
+    session = null;
+    localStorage.removeItem('tm_refresh');
+    notificar();
+  }
+
+  /**
+   * Datos que el vendedor mando al registrarse pero todavia no se pudieron
+   * guardar porque no habia sesion (pasa cuando la confirmacion de email esta
+   * prendida: signup no devuelve token). Quedan aca y se aplican en el primer
+   * login, para que el telefono no se pierda.
+   */
+  function guardarPendientes(datos) {
+    try {
+      localStorage.setItem('tm_pendientes', JSON.stringify({
+        nombre: datos.nombre || '',
+        telefono: datos.telefono || ''
+      }));
+    } catch (e) { /* modo privado */ }
+  }
+
+  async function tomarPendientes() {
+    let raw = null;
+    try { raw = localStorage.getItem('tm_pendientes'); } catch (e) { return null; }
+    if (!raw) return null;
+    let datos;
+    try { datos = JSON.parse(raw); } catch (e) { return null; }
+    try { localStorage.removeItem('tm_pendientes'); } catch (e) {}
+
+    if (!datos || (!datos.nombre && !datos.telefono)) return null;
+    if (!usuarioActual()) return null;
+    try {
+      const actual = await obtenerPerfil();
+      const patch = {};
+      if (datos.nombre && (!actual || !actual.nombre)) patch.nombre = datos.nombre;
+      if (datos.telefono) patch.telefono = normalizarWhatsApp(datos.telefono);
+      if (!Object.keys(patch).length) return null;
+      return await actualizarPerfil(null, patch);
+    } catch (e) {
+      console.warn('No se pudieron aplicar los datos pendientes:', e.message);
+      return null;
+    }
+  }
+
+  async function registrar(nombre, email, password, telefono) {
+    const cuerpo = {
+      email: String(email).trim(),
+      password: password,
+      data: { nombre: String(nombre || '').trim() }
+    };
+    const res = await fetch(URL_BASE + '/auth/v1/signup', {
+      method: 'POST',
+      headers: { apikey: KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify(cuerpo)
+    });
+    const datos = await res.json().catch(() => ({}));
+    if (!res.ok) throw errorLegible(datos, res.status);
+
+    // Si la instancia exige confirmar email, no hay sesión todavía.
+    if (!datos.access_token) {
+      guardarPendientes({ nombre: cuerpo.data.nombre, telefono: telefono });
+      return { requiereConfirmacion: true, email: cuerpo.email };
+    }
+    guardarSesion(datos);
+    await asegurarPerfil(datos.user.id);
+    if (telefono) {
+      await actualizarPerfil(datos.user.id, { telefono: telefono }).catch(() => {});
+    }
+    return { requiereConfirmacion: false, user: datos.user };
+  }
+
+  async function iniciarSesion(email, password) {
+    const res = await fetch(URL_BASE + '/auth/v1/token?grant_type=password', {
+      method: 'POST',
+      headers: { apikey: KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: String(email).trim(), password: password })
+    });
+    const datos = await res.json().catch(() => ({}));
+    if (!res.ok) throw errorLegible(datos, res.status);
+    guardarSesion(datos);
+    await asegurarPerfil(datos.user && datos.user.id);
+    await tomarPendientes();
+    return session;
+  }
+
+  async function cerrarSesion() {
+    try {
+      await fetch(URL_BASE + '/auth/v1/logout', {
+        method: 'POST',
+        headers: { apikey: KEY, Authorization: 'Bearer ' + KEY }
+      });
+    } catch (e) { /* sin internet: cortamos la sesión local igual */ }
+    limpiarSesion();
+  }
+
+  // --------------------------------------------------------------------------
+  //  Perfil
+  // --------------------------------------------------------------------------
+  async function obtenerPerfil(userId) {
+    const id = userId || (usuarioActual() && usuarioActual().id);
+    if (!id) return null;
+    const res = await api('/profiles?id=eq.' + encodeURIComponent(id) + '&select=*', {
+      prefer: 'return=representation'
+    });
+    return (res && res[0]) || null;
+  }
+
+  async function actualizarPerfil(userId, campos) {
+    const id = userId || (usuarioActual() && usuarioActual().id);
+    if (!id) throw new Error('No hay sesión');
+    const patch = {};
+    if (campos.nombre !== undefined) patch.nombre = String(campos.nombre).slice(0, 80);
+    if (campos.telefono !== undefined) patch.telefono = normalizarWhatsApp(campos.telefono).slice(0, 20);
+    if (!Object.keys(patch).length) return null;
+
+    const res = await api('/profiles?id=eq.' + encodeURIComponent(id), {
+      method: 'PATCH',
+      body: patch,
+      prefer: 'return=representation'
+    });
+    return (res && res[0]) || null;
+  }
+
+  /**
+   * Se asegura de que exista la fila en perfiles.
+   *
+   * El trigger de la base la crea al registrarse, pero si el usuario se
+   * registro antes de que el trigger existiera (o si fallo) queda sin fila, y
+   * entonces cualquier INSERT en productos rebota con 409 por la FK.
+   * Con esto la app se auto-repara sola.
+   */
+  async function asegurarPerfil(userId) {
+    const id = userId || (usuarioActual() && usuarioActual().id);
+    if (!id) return null;
+    try {
+      const actual = await obtenerPerfil(id);
+      if (actual) return actual;
+      const u = usuarioActual();
+      const nombre = (u && (u.user_metadata && u.user_metadata.nombre)) || '';
+      const res = await api('/profiles', {
+        method: 'POST',
+        body: { id: id, nombre: String(nombre).slice(0, 80), telefono: '' },
+        prefer: 'return=representation'
+      });
+      return (res && res[0]) || null;
+    } catch (e) {
+      console.warn('No se pudo asegurar el perfil:', e.message);
+      return null;
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  //  Fotos (Storage)
+  // --------------------------------------------------------------------------
+  function validarFoto(archivo) {
+    if (!archivo) return 'Elegí una foto.';
+    if (!/^image\//.test(archivo.type)) return 'El archivo tiene que ser una imagen (JPG o PNG).';
+    if (archivo.size > MAX_FOTO_MB * 1024 * 1024) {
+      return 'La foto pesa más de ' + MAX_FOTO_MB + 'MB. Subí una más liviana.';
+    }
+    return null;
+  }
+
+  async function subirFoto(archivo) {
+    const u = usuarioActual();
+    if (!u) throw new Error('Tenés que iniciar sesión para subir una foto.');
+
+    const problema = validarFoto(archivo);
+    if (problema) throw new Error(problema);
+
+    const ext = (archivo.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+    const ruta = u.id + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + ext;
+
+    const res = await fetch(URL_BASE + '/storage/v1/object/' + BUCKET + '/' + ruta, {
+      method: 'POST',
+      headers: {
+        apikey: KEY,
+        Authorization: 'Bearer ' + session.access_token,
+        'Content-Type': archivo.type,
+        'x-upsert': 'false'
+      },
+      body: archivo
+    });
+    if (!res.ok) {
+      throw errorLegible(await res.json().catch(() => ({})), res.status);
+    }
+
+    return URL_BASE + '/storage/v1/object/public/' + BUCKET + '/' + ruta;
+  }
+
+  async function borrarFoto(url) {
+    const u = usuarioActual();
+    if (!u || !url) return;
+    const prefijo = URL_BASE + '/storage/v1/object/public/' + BUCKET + '/';
+    if (url.indexOf(prefijo) !== 0) return; // no es una foto de este bucket
+    const ruta = decodeURIComponent(url.slice(prefijo.length));
+    if (ruta.split('/')[0] !== u.id) return; // no es de este vendedor
+    await fetch(URL_BASE + '/storage/v1/object/' + BUCKET + '/' + ruta, {
+      method: 'DELETE',
+      headers: { apikey: KEY, Authorization: 'Bearer ' + session.access_token }
+    }).catch(function () {});
+  }
+
+  // --------------------------------------------------------------------------
+  //  Productos
+  // --------------------------------------------------------------------------
+
+  /** Trae los productos publicados por cualquiera + los ocultos del usuario. */
+  async function listarProductos(filtros) {
+    filtros = filtros || {};
+    const u = usuarioActual();
+    const condiciones = [];
+    if (filtros.categoria && filtros.categoria !== 'all') {
+      condiciones.push('categoria=eq.' + encodeURIComponent(filtros.categoria));
+    }
+    if (!filtros.propios) {
+      if (u) condiciones.push('or=(estado.eq.publicado,user_id.eq.' + u.id + ')');
+      else condiciones.push('estado=eq.publicado');
+    }
+    if (filtros.buscar) {
+      const q =encodeURIComponent('*' + filtros.buscar.trim() + '*');
+      condiciones.push('or=(titulo.ilike.' + q + ',descripcion.ilike.' + q + ')');
+    }
+    condiciones.push('select=*,perfiles(nombre,telefono)');
+    condiciones.push('order=created_at.desc');
+
+    return api('/productos?' + condiciones.join('&')) || [];
+  }
+
+  async function listarMisProductos() {
+    const u = usuarioActual();
+    if (!u) return [];
+    return api('/productos?user_id=eq.' + u.id +
+               '&select=*,perfiles(nombre,telefono)&order=created_at.desc') || [];
+  }
+
+  async function crearProducto(datos) {
+    const u = usuarioActual();
+    if (!u) throw new Error('Tenés que iniciar sesión para publicar.');
+
+    const titulo = String(datos.titulo || '').trim();
+    if (!titulo) throw new Error('Poné un título para tu publicación.');
+    if (!esCategoriaValida(datos.categoria)) throw new Error('Elegí una categoría válida.');
+
+    const cuerpo = {
+      user_id: u.id,
+      titulo: titulo.slice(0, 120),
+      descripcion: String(datos.descripcion || '').trim().slice(0, 2000),
+      precio: String(datos.precio || '').trim().slice(0, 40),
+      categoria: datos.categoria,
+      foto_url: datos.foto_url || null,
+      estado: datos.estado === 'oculto' ? 'oculto' : 'publicado'
+    };
+
+    const res = await api('/productos', {
+      method: 'POST', body: cuerpo, prefer: 'return=representation'
+    });
+    return res && res[0];
+  }
+
+  async function actualizarProducto(id, datos) {
+    const u = usuarioActual();
+    if (!u) throw new Error('No hay sesión');
+    const patch = {};
+    if (datos.titulo !== undefined) patch.titulo = String(datos.titulo).trim().slice(0, 120);
+    if (datos.descripcion !== undefined) patch.descripcion = String(datos.descripcion).trim().slice(0, 2000);
+    if (datos.precio !== undefined) patch.precio = String(datos.precio).trim().slice(0, 40);
+    if (datos.categoria !== undefined && esCategoriaValida(datos.categoria)) patch.categoria = datos.categoria;
+    if (datos.foto_url !== undefined) patch.foto_url = datos.foto_url;
+    if (datos.estado !== undefined) patch.estado = datos.estado === 'oculto' ? 'oculto' : 'publicado';
+
+    const res = await api('/productos?id=eq.' + encodeURIComponent(id), {
+      method: 'PATCH', body: patch, prefer: 'return=representation'
+    });
+    return res && res[0];
+  }
+
+  async function alternarEstado(id, estadoActual) {
+    return actualizarProducto(id, { estado: estadoActual === 'publicado' ? 'oculto' : 'publicado' });
+  }
+
+  async function borrarProducto(id) {
+    const u = usuarioActual();
+    if (!u) throw new Error('No hay sesión');
+    const productos = await listarMisProductos();
+    const p = productos.find(x => x.id === id);
+    if (p) await borrarFoto(p.foto_url);
+    await api('/productos?id=eq.' + encodeURIComponent(id), { method: 'DELETE' });
+  }
+
+  // --------------------------------------------------------------------------
+  //  Export
+  // --------------------------------------------------------------------------
+  const Tienda = {
+    configOk: configOk,
+    CATEGORIAS: CATS,
+    MAX_FOTO_MB: MAX_FOTO_MB,
+
+    escapeHtml: escapeHtml,
+    normalizarWhatsApp: normalizarWhatsApp,
+    linkWhatsApp: linkWhatsApp,
+    etiquetaCategoria: etiquetaCategoria,
+
+    restaurarSesion: restaurarSesion,
+    onAuthChange: onAuthChange,
+    usuarioActual: usuarioActual,
+    estaLogueado: function () { return !!session; },
+    registrar: registrar,
+    iniciarSesion: iniciarSesion,
+    tomarPendientes: tomarPendientes,
+    cerrarSesion: cerrarSesion,
+
+    obtenerPerfil: obtenerPerfil,
+    actualizarPerfil: actualizarPerfil,
+    asegurarPerfil: asegurarPerfil,
+
+    validarFoto: validarFoto,
+    subirFoto: subirFoto,
+    borrarFoto: borrarFoto,
+
+    listarProductos: listarProductos,
+    listarMisProductos: listarMisProductos,
+    crearProducto: crearProducto,
+    actualizarProducto: actualizarProducto,
+    alternarEstado: alternarEstado,
+    borrarProducto: borrarProducto
+  };
+
+  global.Tienda = Tienda;
+})(window);

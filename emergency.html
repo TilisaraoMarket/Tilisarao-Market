@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alerta Familiar - App de Emergencia</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #ff4d4d;
+            --primary-dark: #ff0000;
+            --secondary: #64748b;
+            --background: #f8fafc;
+            --text: #1e293b;
+            --white: #ffffff;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        .emergency-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .emergency-header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 20px;
+            color: var(--white);
+            box-shadow: var(--shadow);
+        }
+
+        .emergency-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .emergency-header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .feature-card {
+            background: var(--white);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+
+        .feature-card i {
+            font-size: 2.5rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .options-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+
+        .option-box {
+            background: var(--white);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: var(--shadow);
+        }
+
+        .option-box h3 {
+            color: var(--primary-dark);
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .option-box ul {
+            list-style: none;
+            margin-bottom: 1.5rem;
+        }
+
+        .option-box ul li {
+            margin-bottom: 0.5rem;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .option-box ul li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: var(--primary);
+        }
+
+        .action-button {
+            display: inline-block;
+            background: var(--primary);
+            color: var(--white);
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .action-button:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .installation-guide {
+            background: #f1f5f9;
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin-top: 1rem;
+        }
+
+        .installation-guide ol {
+            padding-left: 1.5rem;
+        }
+
+        .installation-guide li {
+            margin-bottom: 0.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .emergency-header h1 {
+                font-size: 2rem;
+            }
+
+            .emergency-container {
+                margin: 1rem auto;
+            }
+
+            .feature-card {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="emergency-container">
+        <header class="emergency-header">
+            <h1>Alerta Familiar - App de Emergencia</h1>
+            <p>Mantén seguros a tus seres queridos con nuestra aplicación gratuita</p>
+        </header>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <i class="fas fa-bell"></i>
+                <h3>Notificación Inmediata</h3>
+                <p>Alerta instantánea a tus contactos de emergencia</p>
+            </div>
+            <div class="feature-card">
+                <i class="fas fa-map-marker-alt"></i>
+                <h3>Geolocalización</h3>
+                <p>Comparte tu ubicación en tiempo real</p>
+            </div>
+            <div class="feature-card">
+                <i class="fas fa-shield-alt"></i>
+                <h3>Botón de Pánico</h3>
+                <p>Activa la alerta con un solo toque</p>
+            </div>
+        </div>
+
+        <div class="options-container">
+            <div class="option-box">
+                <h3><i class="fas fa-globe"></i> Web de Emergencia</h3>
+                <ul>
+                    <li>Acceso inmediato sin instalación</li>
+                    <li>Compartir ubicación en tiempo real</li>
+                    <li>Compatible con todos los navegadores</li>
+                    <li>No requiere espacio de almacenamiento</li>
+                </ul>
+                <a href="https://tilisaraomarket.github.io/Alerta-Familiar-/" class="action-button">
+                    Acceder a la Web
+                </a>
+                <div class="installation-guide">
+                    <p><strong>Para instalar el acceso directo:</strong></p>
+                    <ol>
+                        <li>Abre la web en Chrome</li>
+                        <li>Toca el menú (⋮) en la esquina superior derecha</li>
+                        <li>Selecciona "Añadir a pantalla de inicio"</li>
+                        <li>Confirma la instalación</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="option-box">
+                <h3><i class="fas fa-mobile-alt"></i> App de Emergencia</h3>
+                <ul>
+                    <li>Notificaciones push instantáneas</li>
+                    <li>Funciona sin conexión a internet</li>
+                    <li>Integración con WhatsApp</li>
+                    <li>Mayor velocidad de respuesta</li>
+                </ul>
+                <a href="https://www.mediafire.com/file/zln7pta0978183c/_Alerta_Familiar_Emergencia_18740511.apk/file" class="action-button">
+                    Descargar App
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
