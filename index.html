@@ -2190,19 +2190,27 @@
                     <button type="button" class="btn-chico" id="btnSalir">Salir</button>
                 </div>
 
-                <!-- Datos de contacto: el teléfono es lo que ven los compradores -->
+                <!-- Datos del vendedor: nombre y telefono, editables cuando quiera -->
                 <div class="sesion-caja" id="cajaContacto" style="display:none; background:#fff7ed; border:2px solid #fb923c; border-radius:.75rem; padding:1rem; margin-bottom:1rem;">
-                    <div style="flex:1; min-width:220px;">
-                        <label for="miTelefono" style="display:block; font-weight:600; margin-bottom:.35rem;">
-                            ⚠ Cargá tu número de WhatsApp para poder publicar
+                    <div style="flex:1; min-width:260px;">
+                        <label for="miNombre" style="display:block; font-weight:600; margin-bottom:.35rem;">
+                            ⚠ Tu nombre y tu número de WhatsApp
                         </label>
-                        <input type="tel" id="miTelefono" placeholder="5491122334456"
-                            style="padding:.6rem; border:1px solid var(--gray-300); border-radius:.5rem; width:100%;">
+                        <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
+                            <input type="text" id="miNombre" placeholder="Cómo te ven los compradores"
+                                style="padding:.6rem; border:1px solid var(--gray-300); border-radius:.5rem; flex:1; min-width:150px;">
+                            <input type="tel" id="miTelefono" placeholder="5491122334456"
+                                style="padding:.6rem; border:1px solid var(--gray-300); border-radius:.5rem; flex:1; min-width:150px;">
+                        </div>
                         <small style="color:var(--secondary); display:block; margin-top:.3rem;">
-                            Solo números, con el prefijo del país y sin el signo +. Ej: 5491122334456
+                            El número solo con dígitos, con el prefijo del país y sin el signo +. Ej: 5491122334456
                         </small>
                     </div>
-                    <button type="button" class="btn-chico" id="btnGuardarTelefono" style="margin-left:0;">Guardar número</button>
+                    <button type="button" class="btn-chico" id="btnGuardarTelefono" style="margin-left:0;">Guardar</button>
+                </div>
+                <div class="sesion-caja" id="cajaContactoOk" style="display:none;">
+                    <span>Tus datos: <strong id="datosEnSesion">—</strong></span>
+                    <button type="button" class="btn-chico" id="btnEditarDatos">Cambiar</button>
                 </div>
 
                 <form id="formProducto" class="contact-form">
@@ -2841,9 +2849,16 @@
                             .then(p => {
                                 if (!p) return;
                                 $('nombreEnSesion').textContent = p.nombre || u.email || 'vendedor';
+                                $('miNombre').value = p.nombre || '';
                                 $('miTelefono').value = p.telefono || '';
-                                // el telefono es obligatorio para que lo contacten
-                                $('cajaContacto').style.display = p.telefono ? 'none' : '';
+
+                                // el telefono es obligatorio: sin el no te pueden comprar.
+                                // el nombre tambien, si queda vacio se veria "vendedor".
+                                const listo = !!p.telefono && !!p.nombre;
+                                $('cajaContacto').style.display = listo ? 'none' : '';
+                                $('cajaContactoOk').style.display = listo ? '' : 'none';
+                                $('datosEnSesion').textContent =
+                                    (p.nombre || 'vendedor') + (p.telefono ? ' · ' + p.telefono : '');
                                 $('prodFoto').required = true;
                             })
                             .catch(() => {
@@ -2965,14 +2980,19 @@
                         const problema = Tienda.validarFoto(archivo);
                         if (problema) { mostrarError('productoError', problema); return; }
 
-                        // sin telefono la publicacion no sirve: nadie te puede escribir
+                        // sin telefono no se puede publicar, aunque tenga nombre
                         const perfil = await Tienda.obtenerPerfil().catch(() => null);
-                        if (!perfil || !perfil.telefono) {
+                        if (!perfil || !perfil.telefono || !perfil.nombre) {
+                            $('cajaContactoOk').style.display = 'none';
                             $('cajaContacto').style.display = '';
-                            $('miTelefono').focus();
+                            if (!perfil || !perfil.nombre) $('miNombre').focus();
+                            else $('miTelefono').focus();
                             mostrarError('productoError',
-                                'Antes de publicar cargá tu número de WhatsApp. ' +
-                                'Si no, los compradores no te van a poder contactar.');
+                                !perfil || !perfil.nombre
+                                    ? 'Antes de publicar completá tu nombre y tu número de WhatsApp. ' +
+                                      'Es lo que ven los compradores. Si no, no te van a poder contactar.'
+                                    : 'Antes de publicar cargá tu número de WhatsApp. ' +
+                                      'Si no, los compradores no te van a poder contactar.');
                             return;
                         }
 
@@ -3028,24 +3048,42 @@
                     });
 
                     $('btnGuardarTelefono').addEventListener('click', async () => {
+                        const nombre = $('miNombre').value.trim();
+                        if (!nombre) {
+                            mostrarError('productoError', 'Escribí tu nombre: es lo que ven los compradores.');
+                            $('miNombre').focus();
+                            return;
+                        }
                         const tel = Tienda.normalizarWhatsApp($('miTelefono').value);
                         if (tel.length < 8) {
                             mostrarError('productoError',
                                 'Revisá el número: con prefijo del país y sin signos. Ej: 5491122334456');
+                            $('miTelefono').focus();
                             return;
                         }
                         const btn = $('btnGuardarTelefono');
                         btn.disabled = true;
+                        btn.textContent = 'Guardando...';
                         try {
-                            await Tienda.actualizarPerfil(null, { telefono: tel });
+                            await Tienda.actualizarPerfil(null, { nombre: nombre, telefono: tel });
+                            $('nombreEnSesion').textContent = nombre;
+                            $('datosEnSesion').textContent = nombre + ' · ' + tel;
                             $('cajaContacto').style.display = 'none';
-                            mostrarOk('productoOk', 'Listo. Tu número ya aparece en las publicaciones.');
+                            $('cajaContactoOk').style.display = '';
+                            mostrarOk('productoOk', 'Listo. Ya podés publicar.');
                             cargarPublicaciones();
                         } catch (err) {
                             mostrarError('productoError', mensajeDe(err));
                         } finally {
                             btn.disabled = false;
+                            btn.textContent = 'Guardar';
                         }
+                    });
+
+                    $('btnEditarDatos').addEventListener('click', () => {
+                        $('cajaContactoOk').style.display = 'none';
+                        $('cajaContacto').style.display = '';
+                        $('miNombre').focus();
                     });
 
                     $('btnMisPublicaciones').addEventListener('click', () => {
