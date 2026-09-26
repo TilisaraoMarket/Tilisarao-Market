@@ -81,8 +81,22 @@
     }
   }
 
-  async function api(ruta, opciones, yaReintentado) {
+  // PostgREST devuelve PGRST205 tambien cuando recien creo una tabla y esta
+  // recargando su cache de esquema. Dura de segundos a un minuto: se espera y
+  // se reintenta varias veces (2s, 4s, 8s) antes de avisarle al usuario.
+  const ESPERA_SCHEMA = [2000, 4000, 8000];
+  const TOTAL_INTENTOS_SCHEMA = ESPERA_SCHEMA.length;
+
+  function esFaltaDeTabla(datos, status) {
+    if (status !== 404 || !datos) return false;
+    const msg = typeof datos === 'string' ? datos : (datos.message || '');
+    return datos.code === 'PGRST205' ||
+           /Could not find the table|schema cache|PGRST204/i.test(msg);
+  }
+
+  async function api(ruta, opciones, yaReintentado, intentosSchema) {
     opciones = opciones || {};
+    if (intentosSchema === undefined) intentosSchema = 0;
     const cabeceras = {
       apikey: KEY,
       Authorization: 'Bearer ' + (session ? session.access_token : KEY),
@@ -98,7 +112,7 @@
 
     // El token de acceso dura 1 hora: si expiró, se refresca y se reintenta una vez.
     if (res.status === 401 && !yaReintentado && session) {
-      if (await refrescarToken()) return api(ruta, opciones, true);
+      if (await refrescarToken()) return api(ruta, opciones, true, intentosSchema);
     }
 
     if (res.status === 204) return null;
@@ -107,12 +121,12 @@
     let datos = null;
     try { datos = texto ? JSON.parse(texto) : null; } catch (e) { datos = texto; }
 
-    // PostgREST devuelve PGRST205 tambien cuando recien creo una tabla y esta
-    // recargando su cache de esquema. Dura unos segundos y se solo: se espera
-    // y se reintenta una vez antes deassume que falta la tabla.
-    if (res.status === 404 && datos && datos.code === 'PGRST205' && !yaReintentado) {
-      await new Promise(r => setTimeout(r, 2000));
-      return api(ruta, opciones, true);
+    // El cache de esquema de PostgREST se recarga solo cuando se toca el schema.
+    // Durante esos segundos responde PGRST205 aunque la tabla exista: se espera
+    // un poco mas y se reintenta, sin molestar al usuario.
+    if (esFaltaDeTabla(datos, res.status) && intentosSchema < TOTAL_INTENTOS_SCHEMA) {
+      await new Promise(r => setTimeout(r, ESPERA_SCHEMA[intentosSchema]));
+      return api(ruta, opciones, yaReintentado, intentosSchema + 1);
     }
 
     if (!res.ok) {
