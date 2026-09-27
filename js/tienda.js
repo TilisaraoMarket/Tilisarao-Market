@@ -12,6 +12,18 @@
   const KEY = typeof SUPABASE_ANON_KEY !== 'undefined' ? SUPABASE_ANON_KEY : '';
   const BUCKET = typeof SUPABASE_BUCKET !== 'undefined' ? SUPABASE_BUCKET : 'fotos-productos';
   const CATS = typeof CATEGORIAS !== 'undefined' ? CATEGORIAS : [];
+  // Mercado al que pertenece esta web. Se lee de la constante TIENDA que
+  // define js/supabase-config.js. Con esta sola linea el mismo archivo
+  // sirve para todos los mercados: cada web muestra y guarda publicaciones
+  // de su propio pueblo.
+  const MI_TIENDA = (typeof TIENDA !== 'undefined' && TIENDA)
+    ? String(TIENDA).toLowerCase()
+    : 'tilisarao';
+  // Nombre que se muestra al comprador: va en el mensaje de WhatsApp y en
+  // las tarjetas. Cada mercado muestra el suyo.
+  const NOMBRE = (typeof NOMBRE_TIENDA !== 'undefined' && NOMBRE_TIENDA)
+    ? NOMBRE_TIENDA
+    : 'Tilisarao Market';
     const API = URL_BASE + '/rest/v1';
 
 
@@ -45,7 +57,7 @@
     const num = normalizarWhatsApp(tel);
     if (!num) return '';
     const texto = encodeURIComponent(
-      'Hola! Vi tu publicación "' + (titulo || '') + '" en Tilisarao Market y me interesa.'
+      'Hola! Vi tu publicación "' + (titulo || '') + '" en ' + NOMBRE + ' y me interesa.'
     );
     return 'https://wa.me/' + num + '?text=' + texto;
   }
@@ -615,6 +627,8 @@
     filtros = filtros || {};
     const u = usuarioActual();
     const condiciones = [];
+    // siempre primero: esta web solo ve las publicaciones de su mercado
+    condiciones.push('tienda=eq.' + encodeURIComponent(MI_TIENDA));
     if (filtros.categoria && filtros.categoria !== 'all') {
       condiciones.push('categoria=eq.' + encodeURIComponent(filtros.categoria));
     }
@@ -636,6 +650,7 @@
     const u = usuarioActual();
     if (!u) return [];
     return api('/productos?user_id=eq.' + u.id +
+               '&tienda=eq.' + encodeURIComponent(MI_TIENDA) +
                '&select=*,perfiles(nombre,telefono)&order=created_at.desc') || [];
   }
 
@@ -654,7 +669,8 @@
       precio: String(datos.precio || '').trim().slice(0, 40),
       categoria: datos.categoria,
       foto_url: datos.foto_url || null,
-      estado: datos.estado === 'oculto' ? 'oculto' : 'publicado'
+      estado: datos.estado === 'oculto' ? 'oculto' : 'publicado',
+      tienda: MI_TIENDA
     };
 
     const res = await api('/productos', {
@@ -699,7 +715,8 @@
   const Tienda = {
     configOk: configOk,
       CATEGORIAS: CATS,
-
+    TIENDA: MI_TIENDA,
+    NOMBRE: NOMBRE,
 
     escapeHtml: escapeHtml,
     normalizarWhatsApp: normalizarWhatsApp,

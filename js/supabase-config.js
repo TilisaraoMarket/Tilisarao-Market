@@ -19,6 +19,17 @@ const SUPABASE_ANON_KEY = 'sb_publishable_HVEaKb7bPBMKiCHZZ0RdFg_6-wyslaz';
 // Debe coincidir con el nombre del bucket en supabase-setup.sql.
 const SUPABASE_BUCKET = 'fotos-productos';
 
+// A que mercado pertenece ESTA web. Define que publicaciones se ven y
+// a que pueblo se guarda lo que se publica desde aca.
+// Es la unica linea que hay que cambiar para agregar un mercado nuevo:
+// en la copia de cada pueblo va el nombre de ese pueblo, en minusculas
+// y sin tildes (ej: 'concaran', 'san-luis', 'mercedes').
+const TIENDA = 'tilisarao';
+
+// Nombre que ve el comprador: título de las tarjetas y texto del mensaje
+// de WhatsApp. Acá va el nombre del mercado, con mayúsculas y tildes.
+const NOMBRE_TIENDA = 'Tilisarao Market';
+
 // Categorías. Deben coincidir con el <select> de index.html y con el CHECK de
 // la tabla productos en supabase-setup.sql.
 const CATEGORIAS = [
